@@ -35,15 +35,25 @@
   <!-- Recharts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
 
-  <!-- Babel Standalone (transpiles JSX in browser) -->
+  <!-- Babel Standalone -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
 
-  <!-- App (loaded after all dependencies) -->
   <script>
-    window.addEventListener('load', function() {
-      document.getElementById('loading').style.display = 'none';
-    });
+    // Fetch app.jsx, transpile it with Babel, then execute it
+    fetch('app.jsx')
+      .then(r => r.text())
+      .then(code => {
+        const transformed = Babel.transform(code, { presets: ['react'] }).code;
+        const script = document.createElement('script');
+        script.textContent = transformed;
+        document.body.appendChild(script);
+        document.getElementById('loading').style.display = 'none';
+      })
+      .catch(err => {
+        document.getElementById('loading').innerHTML =
+          '<span style="color:#f87171">Error loading app: ' + err.message + '</span>';
+        console.error(err);
+      });
   </script>
-  <script type="text/babel" src="app.jsx" data-presets="react"></script>
 </body>
 </html>
