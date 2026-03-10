@@ -785,6 +785,8 @@ const ProductsCtx = React.createContext({
 });
 const ALL_MONTHS_12 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const YEAR_OPTS = ["2024", "2025", "2026", "2027"];
+const MOS_2025 = ["Oct", "Nov", "Dec"];
+const MOS_2026 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
 const STATUS_CFG = {
   "Exceeding": {
     bg: "#172554",
@@ -3471,8 +3473,7 @@ function LeaderboardView({
     Jan: "janPts",
     Feb: "febPts"
   };
-  const MOS_2025 = ["Oct", "Nov", "Dec"];
-  const MOS_2026 = ["Jan", "Feb"];
+  // MOS_2025 and MOS_2026 are global constants
 
   // --- Persistent meeting storage ---
   const STORAGE_KEY = MEETING_STORAGE_KEY;
@@ -5727,7 +5728,7 @@ function MonthTable({
   columns
 }) {
   // columns: array of {key, label, fmt, colorFn}
-  const MOS_2025 = ["Oct", "Nov", "Dec"];
+  // uses global MOS_2025
   const reversed = [...rep.mos].reverse(); // most recent first
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5831,8 +5832,8 @@ function DrillDown({
   const {
     maskName
   } = React.useContext(MeetingCtx);
-  const MOS_2025 = ["Oct", "Nov", "Dec"];
-  const MOS_2026 = ["Jan", "Feb"];
+  // uses global MOS_2025
+  // uses global MOS_2026
   const mos25 = rep.mos.filter(m => MOS_2025.includes(m.month));
   const mos26 = rep.mos.filter(m => MOS_2026.includes(m.month));
   const febMos = rep.feb ? [rep.feb] : [{}];
@@ -6623,8 +6624,8 @@ function IdentityCards({
   rep,
   groupColor
 }) {
-  const MOS_2025 = ["Oct", "Nov", "Dec"];
-  const MOS_2026 = ["Jan", "Feb"];
+  // MOS_2025 is global
+  // MOS_2026 is global
   const mos25 = rep.mos.filter(m => MOS_2025.includes(m.month));
   const mos26 = rep.mos.filter(m => MOS_2026.includes(m.month));
   const ytd25Amt = mos25.reduce((s, m) => s + (m.fundedAmt || 0), 0);
@@ -9286,8 +9287,9 @@ function RepCompareView() {
   const [period, setPeriod] = useState("Feb");
   const [open25, setOpen25] = useState(false);
   const [open26, setOpen26] = useState(false);
-  const MOS_2025 = ["Oct", "Nov", "Dec"];
-  const MOS_2026 = ["Jan", "Feb"];
+
+  // MOS_2025 is global
+  // MOS_2026 is global
   const MOS25_OPTS = [{
     id: "Oct",
     label: "October"
