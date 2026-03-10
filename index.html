@@ -783,6 +783,8 @@ const ProductsCtx = React.createContext({
   products: {},
   saveProducts: () => {}
 });
+const ALL_MONTHS_12 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const YEAR_OPTS = ["2024", "2025", "2026", "2027"];
 const STATUS_CFG = {
   "Promotion Ready": {
     bg: "#052e16",
@@ -3072,12 +3074,12 @@ function GroupSection({
     const rep = sorted.find(r => maskName(r.name).replace(/ /g, "\n") === payload.value);
     const cfg = STATUS_CFG[rep?.status] || STATUS_CFG["On Track"];
     return /*#__PURE__*/React.createElement("text", {
-      x: x,
-      y: y + 10,
-      textAnchor: "middle",
+      x: x - 4,
+      y: y + 4,
+      textAnchor: "end",
       fill: cfg.text,
-      fontSize: 10
-    }, payload.value);
+      fontSize: 11
+    }, payload.value.replace(/\n/g, " "));
   };
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3120,78 +3122,19 @@ function GroupSection({
     }
   }, "AVG ", avg, " PTS")), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#0d1e32",
-      border: "1px solid #1a3550",
-      borderRadius: 6,
-      padding: "16px 16px 8px",
-      boxShadow: "0 2px 8px rgba(0,0,0,.3)"
+      display: "flex",
+      gap: 16,
+      alignItems: "flex-start"
     }
-  }, /*#__PURE__*/React.createElement(ResponsiveContainer, {
-    width: "100%",
-    height: 130
-  }, /*#__PURE__*/React.createElement(BarChart, {
-    cursor: false,
-    data: chartData,
-    margin: {
-      top: 4,
-      right: 10,
-      bottom: 20,
-      left: -10
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowX: "auto"
     }
-  }, /*#__PURE__*/React.createElement(CartesianGrid, {
-    vertical: false,
-    stroke: "#0f2438"
-  }), /*#__PURE__*/React.createElement(XAxis, {
-    dataKey: "name",
-    tick: /*#__PURE__*/React.createElement(CustomTick, null),
-    axisLine: false,
-    tickLine: false
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    tick: {
-      fill: "#a8c4d8",
-      fontSize: 12
-    },
-    axisLine: false,
-    tickLine: false
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: "#0a1525",
-      border: "1px solid #22d3ee44",
-      fontSize: 15,
-      color: "#e2e8f0"
-    },
-    labelStyle: {
-      color: "#7ec8e3",
-      fontWeight: 700
-    },
-    itemStyle: {
-      color: "#e2e8f0"
-    },
-    formatter: (v, n, p) => [`${v} pts`, p.payload.fullName]
-  }), /*#__PURE__*/React.createElement(ReferenceLine, {
-    y: avg,
-    stroke: "#ef4444",
-    strokeDasharray: "4 2",
-    strokeWidth: 1.5,
-    label: {
-      value: `AVG ${avg}`,
-      position: "right",
-      fill: "#ef4444",
-      fontSize: 12
-    }
-  }), /*#__PURE__*/React.createElement(Bar, {
-    activeBar: false,
-    dataKey: "pts",
-    radius: [3, 3, 0, 0],
-    maxBarSize: 36
-  }, chartData.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
-    key: i,
-    fill: d.above ? group.color : `${group.color}44`
-  })))))), /*#__PURE__*/React.createElement("table", {
+  }, /*#__PURE__*/React.createElement("table", {
     style: {
       width: "100%",
-      borderCollapse: "collapse",
-      marginTop: 8
+      borderCollapse: "collapse"
     }
   }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
     style: {
@@ -3304,7 +3247,87 @@ function GroupSection({
         fontSize: 13
       }
     }, r.avgMtg || 0, "%"));
-  }))));
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 220,
+      flexShrink: 0,
+      background: "#0d1e32",
+      border: "1px solid #1a3550",
+      borderRadius: 6,
+      padding: "12px 8px 4px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 11,
+      letterSpacing: 1,
+      textAlign: "center",
+      marginBottom: 4
+    }
+  }, "FEB PTS"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: Math.max(120, sorted.length * 36)
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    cursor: false,
+    data: chartData,
+    margin: {
+      top: 4,
+      right: 50,
+      bottom: 4,
+      left: -10
+    },
+    layout: "vertical"
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    horizontal: false,
+    stroke: "#0f2438"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    type: "number",
+    tick: {
+      fill: "#a8c4d8",
+      fontSize: 11
+    },
+    axisLine: false,
+    tickLine: false
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    type: "category",
+    dataKey: "name",
+    tick: /*#__PURE__*/React.createElement(CustomTick, null),
+    axisLine: false,
+    tickLine: false,
+    width: 80
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      background: "#0a1525",
+      border: "1px solid #22d3ee44",
+      fontSize: 14,
+      color: "#e2e8f0"
+    },
+    labelStyle: {
+      color: "#7ec8e3",
+      fontWeight: 700
+    },
+    formatter: (v, n, p) => [`${v} pts`, p.payload.fullName]
+  }), /*#__PURE__*/React.createElement(ReferenceLine, {
+    x: avg,
+    stroke: "#ef4444",
+    strokeDasharray: "4 2",
+    strokeWidth: 1.5,
+    label: {
+      value: `AVG: ${avg}`,
+      position: "right",
+      fill: "#ef4444",
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }), /*#__PURE__*/React.createElement(Bar, {
+    activeBar: false,
+    dataKey: "pts",
+    radius: [0, 3, 3, 0],
+    maxBarSize: 22
+  }, chartData.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: d.above ? group.color : `${group.color}44`
+  }))))))));
 }
 function LeaderboardView({
   onSel,
