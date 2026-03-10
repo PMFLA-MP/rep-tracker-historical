@@ -3,7 +3,6 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
-<script>if(typeof React==='undefined'||typeof Recharts==='undefined'){document.getElementById('root').innerHTML='<div style="color:red;padding:40px">CDN load error</div>';throw new Error('CDN');}</script>
 <script>const {
   useState,
   useEffect,
@@ -3156,15 +3155,19 @@ function GroupSection({
     axisLine: false,
     tickLine: false
   }), /*#__PURE__*/React.createElement(Tooltip, {
+    cursor: false,
     contentStyle: {
       background: "#0a1525",
       border: "1px solid #22d3ee44",
       fontSize: 14,
-      color: "#e2e8f0"
+      color: "#f1f5f9"
     },
     labelStyle: {
-      color: "#7ec8e3",
+      color: "#22d3ee",
       fontWeight: 700
+    },
+    itemStyle: {
+      color: "#f1f5f9"
     },
     formatter: (v, n, p) => [`${v} pts`, p.payload.fullName]
   }), /*#__PURE__*/React.createElement(ReferenceLine, {
