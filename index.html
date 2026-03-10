@@ -3,6 +3,7 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script>if(typeof React==='undefined'||typeof Recharts==='undefined'){document.getElementById('root').innerHTML='<div style="color:red;padding:40px">CDN load error</div>';throw new Error('CDN');}</script>
 <script>const {
   useState,
   useEffect,
@@ -3055,16 +3056,44 @@ function GroupSection({
     focusRep,
     maskName
   } = React.useContext(MeetingCtx);
+  const {
+    useState
+  } = React;
+  const [sortMode, setSortMode] = useState("pts_desc"); // pts_desc | pts_asc | az | za
+  const [statusFlt, setStatusFlt] = useState("all");
   const withPts = reps.filter(r => r.febPts !== null);
   if (!withPts.length) return null;
   const avg = Math.round(withPts.reduce((s, r) => s + (r.febPts || 0), 0) / withPts.length);
-  const sorted = [...withPts].sort((a, b) => (b.febPts || 0) - (a.febPts || 0));
+  const statusFiltered = statusFlt === "all" ? withPts : withPts.filter(r => r.status === statusFlt);
+  const sorted = [...statusFiltered].sort((a, b) => {
+    if (sortMode === "pts_desc") return (b.febPts || 0) - (a.febPts || 0);
+    if (sortMode === "pts_asc") return (a.febPts || 0) - (b.febPts || 0);
+    if (sortMode === "az") return a.name.localeCompare(b.name);
+    if (sortMode === "za") return b.name.localeCompare(a.name);
+    return 0;
+  });
   const chartData = sorted.map(r => ({
     name: maskName(r.name).replace(/ /g, "\n"),
     fullName: maskName(r.name),
     pts: r.febPts || 0,
     above: (r.febPts || 0) >= avg
   }));
+  const STATUS_FILTERS = [{
+    v: "all",
+    l: "ALL"
+  }, {
+    v: "Promotion Ready",
+    l: "PROMOTE"
+  }, {
+    v: "On Track",
+    l: "ON TRACK"
+  }, {
+    v: "Needs Attention",
+    l: "MEET SOON"
+  }, {
+    v: "Underperforming",
+    l: "ACT NOW"
+  }];
   const CustomTick = ({
     x,
     y,
@@ -3089,14 +3118,16 @@ function GroupSection({
       display: "flex",
       alignItems: "center",
       gap: 12,
-      marginBottom: 12
+      marginBottom: 10,
+      flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 3,
       height: 24,
       background: group.color,
-      borderRadius: 2
+      borderRadius: 2,
+      flexShrink: 0
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -3110,7 +3141,7 @@ function GroupSection({
       color: "#7ec8e3",
       fontSize: 13
     }
-  }, withPts.length, " REP", withPts.length !== 1 ? "S" : ""), /*#__PURE__*/React.createElement("span", {
+  }, sorted.length, "/", withPts.length, " REP", withPts.length !== 1 ? "S" : ""), /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#a8c4d8",
       fontSize: 13,
@@ -3119,7 +3150,82 @@ function GroupSection({
       borderRadius: 3,
       padding: "2px 8px"
     }
-  }, "AVG ", avg, " PTS")), /*#__PURE__*/React.createElement("div", {
+  }, "AVG ", avg, " PTS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 11,
+      letterSpacing: 1,
+      marginRight: 2
+    }
+  }, "SORT:"), [{
+    v: "pts_desc",
+    l: "PTS ↓"
+  }, {
+    v: "pts_asc",
+    l: "PTS ↑"
+  }, {
+    v: "az",
+    l: "A→Z"
+  }, {
+    v: "za",
+    l: "Z→A"
+  }].map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.v,
+    onClick: () => setSortMode(o.v),
+    style: {
+      background: sortMode === o.v ? `${group.color}22` : "none",
+      border: `1px solid ${sortMode === o.v ? group.color : "#1a3550"}`,
+      borderRadius: 4,
+      padding: "2px 8px",
+      color: sortMode === o.v ? group.color : "#4a7fa8",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: sortMode === o.v ? 700 : 400
+    }
+  }, o.l))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 11,
+      letterSpacing: 1,
+      marginRight: 2
+    }
+  }, "FILTER:"), STATUS_FILTERS.map(o => {
+    const cfg = STATUS_CFG[o.v] || {
+      text: "#7ec8e3",
+      border: "#1a3550"
+    };
+    const active = statusFlt === o.v;
+    return /*#__PURE__*/React.createElement("button", {
+      key: o.v,
+      onClick: () => setStatusFlt(o.v),
+      style: {
+        background: active ? o.v === "all" ? "#1a3550" : cfg.bg : "none",
+        border: `1px solid ${active ? o.v === "all" ? "#7ec8e3" : cfg.border : "#1a3550"}`,
+        borderRadius: 4,
+        padding: "2px 8px",
+        color: active ? o.v === "all" ? "#7ec8e3" : cfg.text : "#4a7fa8",
+        fontSize: 12,
+        cursor: "pointer",
+        fontWeight: active ? 700 : 400
+      }
+    }, o.l);
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#0d1e32",
       border: "1px solid #1a3550",
@@ -7462,6 +7568,12 @@ function RepDetail({
   const [printMode, setPrintMode] = useState(false);
   const [editGoal, setEditGoal] = useState(false);
   const [goalInput, setGoalInput] = useState("");
+  const [period, setPeriod] = useState(() => {
+    const _mn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return _mn[new Date().getMonth()];
+  });
+  const [open25, setOpen25] = useState(false);
+  const [open26, setOpen26] = useState(false);
   const {
     goals,
     saveGoal
@@ -7470,18 +7582,74 @@ function RepDetail({
     meetingMode,
     maskName
   } = React.useContext(MeetingCtx);
+  const {
+    bm
+  } = React.useContext(BenchmarksCtx);
   const repGoal = goals[rep.name] || {};
   const gc = POS_GROUPS.find(p => p.key === rep.group);
   const groupColor = gc?.color || "#22d3ee";
-  const MOS_2025 = ["Oct", "Nov", "Dec"];
-  const MOS_2026 = ["Jan", "Feb"];
-  const mos25 = rep.mos.filter(m => MOS_2025.includes(m.month));
-  const mos26 = rep.mos.filter(m => MOS_2026.includes(m.month));
-  const ytd25Units = mos25.reduce((s, m) => s + (m.funded || 0), 0);
-  const ytd26Units = mos26.reduce((s, m) => s + (m.funded || 0), 0);
-  const ytd25Amt = mos25.reduce((s, m) => s + (m.fundedAmt || 0), 0);
-  const ytd26Amt = mos26.reduce((s, m) => s + (m.fundedAmt || 0), 0);
-  const totSent = rep.mos.reduce((s, m) => s + (m.sent || 0), 0);
+
+  // Period setup
+  const _mn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const CURRENT_MONTH = _mn[new Date().getMonth()];
+  const MOS25_OPTS = [{
+    id: "Oct",
+    label: "October"
+  }, {
+    id: "Nov",
+    label: "November"
+  }, {
+    id: "Dec",
+    label: "December"
+  }];
+  const MOS26_OPTS = [{
+    id: "Jan",
+    label: "January"
+  }, {
+    id: "Feb",
+    label: "February"
+  }, {
+    id: "Mar",
+    label: "March"
+  }, {
+    id: "Apr",
+    label: "April"
+  }, {
+    id: "May",
+    label: "May"
+  }, {
+    id: "Jun",
+    label: "June"
+  }, {
+    id: "Jul",
+    label: "July"
+  }, {
+    id: "Aug",
+    label: "August"
+  }, {
+    id: "Sep",
+    label: "September"
+  }];
+  const ALL25 = ["Oct", "Nov", "Dec"];
+  const ALL26 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+  const is25Mo = MOS25_OPTS.some(m => m.id === period);
+  const is26Mo = MOS26_OPTS.some(m => m.id === period) && period !== period; // unused
+  const is26MoFlag = MOS26_OPTS.some(m => m.id === period);
+  const periodLabel = period === "all" ? "ALL TIME" : period === "2025" ? "2025 YTD (Oct–Dec)" : period === "2026" ? "2026 YTD" : MOS25_OPTS.find(m => m.id === period)?.label || MOS26_OPTS.find(m => m.id === period)?.label || period;
+  const selMos = period === "all" ? rep.mos : period === "2025" ? rep.mos.filter(m => ALL25.includes(m.month)) : period === "2026" ? rep.mos.filter(m => ALL26.includes(m.month)) : rep.mos.filter(m => m.month === period);
+
+  // Period aggregates
+  const selUnits = selMos.reduce((s, m) => s + (m.funded || 0), 0);
+  const selAmt = selMos.reduce((s, m) => s + (m.fundedAmt || 0), 0);
+  const selSent = selMos.reduce((s, m) => s + (m.sent || 0), 0);
+  const selRec = selMos.reduce((s, m) => s + (m.received || 0), 0);
+  const selApp = selMos.reduce((s, m) => s + (m.approved || 0), 0);
+  const nMos = Math.max(1, selMos.length);
+  const avgUnitsPerMo = selUnits / nMos;
+  const avgAmtPerMo = selAmt / nMos;
+
+  // Benchmark for this rep's tier
+  const repBm = bm.find(b => b.tier === rep.expTier) || null;
   const totFunded = rep.mos.reduce((s, m) => s + (m.funded || 0), 0);
   const totAmt = rep.mos.reduce((s, m) => s + (m.fundedAmt || 0), 0);
   const avgAmt = rep.mos.length ? Math.round(totAmt / rep.mos.length) : 0;
@@ -7507,25 +7675,90 @@ function RepDetail({
     contacts: 0,
     contactPct: 0
   };
-  const febMo = rep.feb || {};
-  const feb25Sent = mos25.reduce((s, m) => s + (m.sent || 0), 0);
-  const feb26Sent = mos26.reduce((s, m) => s + (m.sent || 0), 0);
-  const feb25Rec = mos25.reduce((s, m) => s + (m.received || 0), 0);
-  const feb26Rec = mos26.reduce((s, m) => s + (m.received || 0), 0);
-  const feb25App = mos25.reduce((s, m) => s + (m.approved || 0), 0);
-  const feb26App = mos26.reduce((s, m) => s + (m.approved || 0), 0);
-
-  // 2025 conversion rates
-  const s25 = feb25Sent,
-    r25 = feb25Rec,
-    ap25 = feb25App,
-    f25 = ytd25Units;
-  // 2026 conversion rates
-  const s26 = feb26Sent,
-    r26 = feb26Rec,
-    ap26 = feb26App,
-    f26 = ytd26Units;
-  return /*#__PURE__*/React.createElement("div", null, drill && /*#__PURE__*/React.createElement(DrillDown, {
+  const tabBtn = (active, color, onClick, children) => /*#__PURE__*/React.createElement("button", {
+    onClick: onClick,
+    style: {
+      background: active ? `${color}22` : "#0a1525",
+      border: `1px solid ${active ? color : "#1a3550"}`,
+      borderRadius: 4,
+      padding: "4px 12px",
+      color: active ? color : "#4a7fa8",
+      fontSize: 14,
+      letterSpacing: .5,
+      cursor: "pointer",
+      fontFamily: "'DM Mono',monospace",
+      whiteSpace: "nowrap",
+      fontWeight: active ? 700 : 400
+    }
+  }, children);
+  const BmBar = ({
+    label,
+    value,
+    target,
+    fmt = v => v,
+    color
+  }) => {
+    if (!target || target <= 0) return null;
+    const p = Math.min(100, Math.round(value / target * 100));
+    const bc = p >= 100 ? "#34d399" : p >= 75 ? "#22d3ee" : p >= 50 ? "#fbbf24" : "#f87171";
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8,
+        padding: "8px 10px",
+        background: "#060e1a",
+        borderRadius: 4,
+        border: "1px solid #0f2438"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#4a7fa8",
+        fontSize: 12,
+        letterSpacing: .8
+      }
+    }, label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: bc,
+        fontSize: 12,
+        fontWeight: 700
+      }
+    }, fmt(value), " / ", fmt(target), " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#4a7fa8"
+      }
+    }, "target"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        background: "#0a1f35",
+        borderRadius: 3
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: `${p}%`,
+        height: "100%",
+        background: bc,
+        borderRadius: 3,
+        transition: "width .3s"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: bc,
+        fontSize: 12,
+        marginTop: 3
+      }
+    }, p, "% of benchmark goal"));
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: () => {
+      if (open25) setOpen25(false);
+      if (open26) setOpen26(false);
+    }
+  }, drill && /*#__PURE__*/React.createElement(DrillDown, {
     title: drill.title,
     rep: rep,
     boxKey: drill.key,
@@ -7593,7 +7826,7 @@ function RepDetail({
       display: "flex",
       alignItems: "flex-start",
       gap: 20,
-      marginBottom: 16,
+      marginBottom: 12,
       flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -7626,275 +7859,154 @@ function RepDetail({
   }))), /*#__PURE__*/React.createElement(RepMeetingPanel, {
     rep: rep,
     groupColor: groupColor
-  })), /*#__PURE__*/React.createElement(IdentityCards, {
-    rep: rep,
-    groupColor: groupColor
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#0d1e32",
+      background: "#0a1525",
       border: "1px solid #1a3550",
-      borderRadius: 8,
-      padding: "14px 16px",
-      marginBottom: 16
+      borderRadius: 6,
+      padding: "10px 14px",
+      marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: "'Bebas Neue',sans-serif",
-      fontSize: 22,
-      color: groupColor,
-      letterSpacing: 2,
-      marginBottom: 14
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap"
     }
-  }, "MONTHLY BREAKDOWN"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      overflowX: "auto"
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1,
+      marginRight: 4
     }
-  }, /*#__PURE__*/React.createElement("table", {
+  }, "PERIOD:"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setPeriod(CURRENT_MONTH);
+      setOpen25(false);
+      setOpen26(false);
+    },
     style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      minWidth: 600
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: {
-      borderBottom: "1px solid #1a3550"
-    }
-  }, ["MONTH", "SENT", "RECEIVED", "APPROVED", "UNITS", "FUNDED $", "APPROVE %", "CLOSE %", "MTG %"].map(h => /*#__PURE__*/React.createElement("th", {
-    key: h,
-    style: {
-      padding: "6px 10px",
-      color: "#7ec8e3",
+      background: period === CURRENT_MONTH ? "#22d3ee22" : "#0a1525",
+      border: `1px solid ${period === CURRENT_MONTH ? "#22d3ee" : "#22d3ee66"}`,
+      borderRadius: 4,
+      padding: "4px 12px",
+      color: period === CURRENT_MONTH ? "#22d3ee" : "#22d3ee99",
       fontSize: 14,
-      letterSpacing: 1.2,
-      fontWeight: 700,
-      textAlign: "left",
-      whiteSpace: "nowrap"
+      cursor: "pointer",
+      fontFamily: "'DM Mono',monospace",
+      fontWeight: 700
     }
-  }, h)))), /*#__PURE__*/React.createElement("tbody", null, [...rep.mos].reverse().map((m, i) => {
-    const isCurrent = m.month === "Feb";
-    const appPct = m.sent > 0 ? Math.round(m.approved / m.sent * 100) : 0;
-    const closePct = m.sent > 0 ? Math.round(m.funded / m.sent * 100) : 0;
-    return /*#__PURE__*/React.createElement("tr", {
-      key: m.month,
-      style: {
-        borderBottom: "1px solid #0a1f35",
-        background: isCurrent ? `${groupColor}0d` : "transparent"
-      }
-    }, /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: isCurrent ? groupColor : "#a8c4d8",
-        fontWeight: isCurrent ? 700 : 400,
-        fontSize: 14,
-        whiteSpace: "nowrap"
-      }
-    }, m.month, " ", m.month === "Oct" || m.month === "Nov" || m.month === "Dec" ? "'25" : "'26", isCurrent && /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: groupColor,
-        fontSize: 14,
-        marginLeft: 4,
-        letterSpacing: 1
-      }
-    }, "CURRENT")), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: "#94b8cc",
-        fontSize: 15
-      }
-    }, m.sent || "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: "#a78bfa",
-        fontSize: 15
-      }
-    }, m.received || "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: "#fbbf24",
-        fontSize: 15
-      }
-    }, m.approved || "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: m.funded > 0 ? "#34d399" : "#2a4a6a",
-        fontFamily: "'Bebas Neue',sans-serif",
-        fontSize: 22
-      }
-    }, m.funded || "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: m.fundedAmt > 0 ? "#22d3ee" : "#2a4a6a",
-        fontWeight: 600,
-        fontSize: 14
-      }
-    }, m.fundedAmt > 0 ? fmt$(m.fundedAmt) : "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: appPct >= 70 ? "#34d399" : appPct >= 40 ? "#fbbf24" : appPct > 0 ? "#fb923c" : "#2a4a6a",
-        fontSize: 14
-      }
-    }, m.sent > 0 ? `${appPct}%` : "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: closePct >= 30 ? "#34d399" : closePct >= 15 ? "#fbbf24" : closePct > 0 ? "#fb923c" : "#2a4a6a",
-        fontSize: 14
-      }
-    }, m.sent > 0 ? `${closePct}%` : "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "7px 10px",
-        color: m.meetingPct >= 70 ? "#34d399" : m.meetingPct >= 40 ? "#fbbf24" : m.meetingPct > 0 ? "#fb923c" : "#2a4a6a",
-        fontSize: 14
-      }
-    }, m.meetingPct > 0 ? `${m.meetingPct}%` : "—"));
-  }), (() => {
-    const totS = rep.mos.reduce((a, m) => a + (m.sent || 0), 0);
-    const totR = rep.mos.reduce((a, m) => a + (m.received || 0), 0);
-    const totA = rep.mos.reduce((a, m) => a + (m.approved || 0), 0);
-    const totU = rep.mos.reduce((a, m) => a + (m.funded || 0), 0);
-    const totF = rep.mos.reduce((a, m) => a + (m.fundedAmt || 0), 0);
-    const totAppPct = totS > 0 ? Math.round(totA / totS * 100) : 0;
-    const totClosePct = totS > 0 ? Math.round(totU / totS * 100) : 0;
-    return /*#__PURE__*/React.createElement("tr", {
-      style: {
-        borderTop: "2px solid #1a3550",
-        background: "#060e1a"
-      }
-    }, /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#7ec8e3",
-        fontSize: 12,
-        fontWeight: 800,
-        letterSpacing: 1
-      }
-    }, "TOTAL"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#94b8cc",
-        fontWeight: 700,
-        fontSize: 15
-      }
-    }, totS), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#a78bfa",
-        fontWeight: 700,
-        fontSize: 15
-      }
-    }, totR), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#fbbf24",
-        fontWeight: 700,
-        fontSize: 15
-      }
-    }, totA), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#34d399",
-        fontFamily: "'Bebas Neue',sans-serif",
-        fontSize: 22
-      }
-    }, totU), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#22d3ee",
-        fontWeight: 700,
-        fontSize: 14
-      }
-    }, fmt$(totF)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#a8c4d8",
-        fontSize: 14
-      }
-    }, totS > 0 ? `${totAppPct}%` : "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#a8c4d8",
-        fontSize: 14
-      }
-    }, totS > 0 ? `${totClosePct}%` : "—"), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "8px 10px",
-        color: "#4a7fa8",
-        fontSize: 14
-      }
-    }, "\u2014"));
-  })())))), rep.raw?.calls?.dials > 0 && (() => {
-    const c = rep.raw.calls;
-    const rateColor = c.contactPct >= 20 ? "#34d399" : c.contactPct >= 10 ? "#fbbf24" : "#fb923c";
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginBottom: 16
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 16,
-        letterSpacing: 1.5,
-        marginBottom: 10,
-        fontWeight: 800
-      }
-    }, "CALL LOG \u2014 ALL TIME"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "repeat(3,1fr)",
-        gap: 10
-      }
-    }, [{
-      label: "TOTAL DIALS",
-      value: c.dials.toLocaleString(),
-      color: "#e2e8f0",
-      sub: null
-    }, {
-      label: "CONTACTS MADE",
-      value: c.contacts.toLocaleString(),
-      color: "#e2e8f0",
-      sub: null
-    }, {
-      label: "CONTACT RATE",
-      value: `${c.contactPct}%`,
-      color: rateColor,
-      sub: c.contactPct >= 20 ? "Above target" : c.contactPct >= 10 ? "Near target" : "Below target"
-    }].map(({
-      label,
-      value,
-      color,
-      sub
-    }) => /*#__PURE__*/React.createElement("div", {
-      key: label,
-      style: {
-        background: "#0d1e32",
-        border: "1px solid #1a3550",
-        borderRadius: 6,
-        padding: "12px 16px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 14,
-        letterSpacing: 1.2,
-        marginBottom: 8,
-        fontWeight: 800
-      }
-    }, label), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "'Bebas Neue',sans-serif",
-        fontSize: 36,
-        color,
-        letterSpacing: 1,
-        lineHeight: 1
-      }
-    }, value), sub && /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: rateColor,
-        fontSize: 15,
-        marginTop: 5,
-        letterSpacing: .5
-      }
-    }, sub)))));
-  })(), /*#__PURE__*/React.createElement("div", {
+  }, "CURRENT MONTH"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      height: 18,
+      background: "#1a3550"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, tabBtn(is25Mo, "#a78bfa", e => {
+    e.stopPropagation();
+    setOpen25(!open25);
+    setOpen26(false);
+  }, `2025${is25Mo ? ` · ${periodLabel}` : " ▾"}`), open25 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      background: "#0d1e32",
+      border: "1px solid #1e3a5f",
+      borderRadius: 6,
+      zIndex: 99,
+      minWidth: 140,
+      boxShadow: "0 4px 16px rgba(0,0,0,.5)"
+    }
+  }, MOS25_OPTS.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    onClick: e => {
+      e.stopPropagation();
+      setPeriod(m.id);
+      setOpen25(false);
+    },
+    style: {
+      padding: "8px 14px",
+      color: period === m.id ? "#a78bfa" : "#a8c4d8",
+      background: period === m.id ? "#0a1f35" : "transparent",
+      cursor: "pointer",
+      fontSize: 14,
+      fontFamily: "'DM Mono',monospace"
+    }
+  }, m.label)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, tabBtn(is26MoFlag && period !== CURRENT_MONTH, "#22d3ee", e => {
+    e.stopPropagation();
+    setOpen26(!open26);
+    setOpen25(false);
+  }, `2026${is26MoFlag && period !== CURRENT_MONTH ? ` · ${periodLabel}` : " ▾"}`), open26 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 4px)",
+      left: 0,
+      background: "#0d1e32",
+      border: "1px solid #1e3a5f",
+      borderRadius: 6,
+      zIndex: 99,
+      minWidth: 140,
+      boxShadow: "0 4px 16px rgba(0,0,0,.5)"
+    }
+  }, MOS26_OPTS.map(m => /*#__PURE__*/React.createElement("div", {
+    key: m.id,
+    onClick: e => {
+      e.stopPropagation();
+      setPeriod(m.id);
+      setOpen26(false);
+    },
+    style: {
+      padding: "8px 14px",
+      color: period === m.id ? "#22d3ee" : "#a8c4d8",
+      background: period === m.id ? "#0a1f35" : "transparent",
+      cursor: "pointer",
+      fontSize: 14,
+      fontFamily: "'DM Mono',monospace"
+    }
+  }, m.label)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      height: 18,
+      background: "#1a3550"
+    }
+  }), [{
+    id: "2025",
+    l: "2025 YTD",
+    c: "#a78bfa"
+  }, {
+    id: "2026",
+    l: "2026 YTD",
+    c: "#818cf8"
+  }, {
+    id: "all",
+    l: "ALL TIME",
+    c: "#7ec8e3"
+  }].map(t => tabBtn(period === t.id, t.c, () => {
+    setPeriod(t.id);
+    setOpen25(false);
+    setOpen26(false);
+  }, t.l)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#22d3ee",
+      fontWeight: 700,
+      fontSize: 13,
+      marginLeft: 8
+    }
+  }, periodLabel))), /*#__PURE__*/React.createElement(IdentityCards, {
+    rep: rep,
+    groupColor: groupColor
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(3,1fr)",
@@ -7902,7 +8014,7 @@ function RepDetail({
       marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement(StatBox, {
-    label: "Units",
+    label: `Units — ${periodLabel}`,
     onExpand: () => setDrill({
       key: "units",
       title: "Units"
@@ -7922,36 +8034,21 @@ function RepDetail({
     refVal: totFunded / Math.max(1, rep.mos.length),
     height: 75
   })), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Feb (Current Month)",
-    value: rep.feb?.funded || 0,
-    color: (rep.feb?.funded || 0) >= 4 ? "#34d399" : (rep.feb?.funded || 0) > 0 ? "#fbbf24" : "#f87171"
-  }), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2025 YTD",
-    c: "#a78bfa",
-    sub: "Oct\u2013Dec"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
     label: "Total Units",
-    value: ytd25Units,
-    color: "#a78bfa"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
+    value: selUnits,
+    color: selUnits > 0 ? groupColor : "#f87171"
+  }), nMos > 1 && /*#__PURE__*/React.createElement(MetricRow, {
     label: "Avg / Month",
-    value: (ytd25Units / Math.max(1, mos25.length)).toFixed(1),
-    color: "#6a5fa8"
-  }), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2026 YTD",
-    c: "#22d3ee",
-    sub: "Jan\u2013Feb"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Total Units",
-    value: ytd26Units,
-    color: "#22d3ee"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Avg / Month",
-    value: (ytd26Units / Math.max(1, mos26.length)).toFixed(1),
-    color: "#1a9fa8",
-    noLine: true
+    value: avgUnitsPerMo.toFixed(1),
+    color: "#a8c4d8"
+  }), repBm && /*#__PURE__*/React.createElement(BmBar, {
+    label: "MONTHLY AVG vs BENCHMARK",
+    value: avgUnitsPerMo,
+    target: repBm.units,
+    fmt: v => v.toFixed(1),
+    color: groupColor
   })), /*#__PURE__*/React.createElement(StatBox, {
-    label: "Funded $",
+    label: `Funded $ — ${periodLabel}`,
     onExpand: () => setDrill({
       key: "funded",
       title: "Funded $"
@@ -7969,12 +8066,16 @@ function RepDetail({
     fmtFn: fmt$,
     height: 75
   })), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Feb (Current Month)",
-    value: fmt$(rep.feb?.fundedAmt || 0),
-    color: (rep.feb?.fundedAmt || 0) >= (repGoal.monthly || rep.expMonthly) ? "#34d399" : (rep.feb?.fundedAmt || 0) > 0 ? "#fbbf24" : "#f87171"
+    label: "Total Funded",
+    value: fmt$(selAmt),
+    color: selAmt > 0 ? "#22d3ee" : "#f87171"
+  }), nMos > 1 && /*#__PURE__*/React.createElement(MetricRow, {
+    label: "Avg / Month",
+    value: fmt$(Math.round(avgAmtPerMo)),
+    color: "#a8c4d8"
   }), (() => {
     const g = repGoal.monthly || rep.expMonthly || 0;
-    const v = rep.feb?.fundedAmt || 0;
+    const v = nMos === 1 ? selAmt : Math.round(avgAmtPerMo);
     const p = g ? Math.min(100, Math.round(v / g * 100)) : null;
     const saveG = () => {
       saveGoal(rep.name, {
@@ -7985,7 +8086,11 @@ function RepDetail({
     };
     return g || editGoal ? /*#__PURE__*/React.createElement("div", {
       style: {
-        marginBottom: 6
+        marginTop: 8,
+        padding: "8px 10px",
+        background: "#060e1a",
+        borderRadius: 4,
+        border: "1px solid #0f2438"
       }
     }, editGoal ? /*#__PURE__*/React.createElement("div", {
       style: {
@@ -8083,7 +8188,7 @@ function RepDetail({
       }
     }, p, "% of monthly goal"))) : /*#__PURE__*/React.createElement("div", {
       style: {
-        marginBottom: 4
+        marginTop: 4
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: () => {
@@ -8100,138 +8205,78 @@ function RepDetail({
         cursor: "pointer"
       }
     }, "+ set goal"));
-  })(), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2025 YTD",
-    c: "#a78bfa",
-    sub: "Oct\u2013Dec"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Total Funded $",
-    value: fmt$(ytd25Amt),
-    color: "#a78bfa"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Avg / Month",
-    value: fmt$(ytd25Amt / Math.max(1, mos25.length)),
-    color: "#6a5fa8"
-  }), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2026 YTD",
-    c: "#22d3ee",
-    sub: "Jan\u2013Feb"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Total Funded $",
-    value: fmt$(ytd26Amt),
-    color: "#22d3ee"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Avg / Month",
-    value: fmt$(ytd26Amt / Math.max(1, mos26.length)),
-    color: "#1a9fa8",
-    noLine: true
+  })(), repBm && /*#__PURE__*/React.createElement(BmBar, {
+    label: "AVG/MONTH vs BENCHMARK",
+    value: Math.round(avgAmtPerMo),
+    target: repBm.monthly,
+    fmt: fmt$,
+    color: groupColor
   })), /*#__PURE__*/React.createElement(StatBox, {
-    label: "Apps",
+    label: `Apps — ${periodLabel}`,
     onExpand: () => setDrill({
       key: "apps",
       title: "Apps"
     })
-  }, /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "Feb (Current Month)",
-    c: groupColor
-  }), /*#__PURE__*/React.createElement(MetricRow, {
+  }, /*#__PURE__*/React.createElement(MetricRow, {
     label: "Sent",
-    value: febMo.sent || 0,
+    value: selSent,
     color: "#f1f5f9"
   }), /*#__PURE__*/React.createElement(MetricRow, {
     label: "Received",
-    value: febMo.received || 0,
+    value: selRec,
     color: "#a8c4d8"
   }), /*#__PURE__*/React.createElement(MetricRow, {
     label: "Approved",
-    value: febMo.approved || 0,
+    value: selApp,
     color: "#fbbf24"
-  }), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2025 YTD",
-    c: "#a78bfa",
-    sub: "Oct\u2013Dec"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Sent",
-    value: feb25Sent,
-    color: "#a78bfa"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Received",
-    value: feb25Rec,
-    color: "#8a6fd8"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Approved",
-    value: feb25App,
-    color: "#c4920a"
-  }), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2026 YTD",
-    c: "#22d3ee",
-    sub: "Jan\u2013Feb"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Sent",
-    value: feb26Sent,
-    color: "#22d3ee"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Received",
-    value: feb26Rec,
-    color: "#1aa8c8"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Approved",
-    value: feb26App,
-    color: "#fbbf24",
+  }), selSent > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      padding: "6px 8px",
+      background: "#060e1a",
+      borderRadius: 4,
+      border: "1px solid #0f2438"
+    }
+  }, /*#__PURE__*/React.createElement(MetricRow, {
+    label: "Submit Rate",
+    value: pct(selRec, selSent),
+    color: convC(selRec, selSent),
     noLine: true
-  })), /*#__PURE__*/React.createElement(StatBox, {
-    label: "Conversion Rates",
+  }), /*#__PURE__*/React.createElement(MetricRow, {
+    label: "Approval Rate",
+    value: pct(selApp, selRec),
+    color: convC(selApp, selRec),
+    noLine: true
+  }), /*#__PURE__*/React.createElement(MetricRow, {
+    label: "Close Rate",
+    value: pct(selUnits, selSent),
+    color: convC(selUnits, selSent),
+    noLine: true
+  })))), /*#__PURE__*/React.createElement(StatBox, {
+    label: `Conversion — ${periodLabel}`,
     onExpand: () => setDrill({
       key: "conversion",
       title: "Conversion Rates"
     })
-  }, /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2025 YTD",
-    c: "#a78bfa",
-    sub: "Oct\u2013Dec"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
+  }, /*#__PURE__*/React.createElement(MetricRow, {
     label: "Submission",
-    value: pct(r25, s25),
-    color: convC(r25, s25),
+    value: pct(selRec, selSent),
+    color: convC(selRec, selSent),
     sub: "Received \xF7 Sent"
   }), /*#__PURE__*/React.createElement(MetricRow, {
     label: "Approval",
-    value: pct(ap25, r25),
-    color: convC(ap25, r25),
+    value: pct(selApp, selRec),
+    color: convC(selApp, selRec),
     sub: "Approved \xF7 Received"
   }), /*#__PURE__*/React.createElement(MetricRow, {
     label: "Close Rate",
-    value: pct(f25, ap25),
-    color: convC(f25, ap25),
+    value: pct(selUnits, selApp),
+    color: convC(selUnits, selApp),
     sub: "Funded \xF7 Approved"
   }), /*#__PURE__*/React.createElement(MetricRow, {
     label: "Overall",
-    value: pct(f25, s25),
-    color: convC(f25, s25),
-    sub: "Funded \xF7 Sent"
-  }), /*#__PURE__*/React.createElement(SectionDiv, {
-    l: "2026 YTD",
-    c: "#22d3ee",
-    sub: "Jan\u2013Feb"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Submission",
-    value: pct(r26, s26),
-    color: convC(r26, s26),
-    sub: "Received \xF7 Sent"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Approval",
-    value: pct(ap26, r26),
-    color: convC(ap26, r26),
-    sub: "Approved \xF7 Received"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Close Rate",
-    value: pct(f26, ap26),
-    color: convC(f26, ap26),
-    sub: "Funded \xF7 Approved"
-  }), /*#__PURE__*/React.createElement(MetricRow, {
-    label: "Overall",
-    value: pct(f26, s26),
-    color: convC(f26, s26),
+    value: pct(selUnits, selSent),
+    color: convC(selUnits, selSent),
     sub: "Funded \xF7 Sent",
     noLine: true
   })), /*#__PURE__*/React.createElement(StatBox, {
@@ -8252,7 +8297,7 @@ function RepDetail({
     label: "Contact Rate",
     value: `${calls.contactPct}%`,
     color: calls.contactPct >= 20 ? "#34d399" : calls.contactPct >= 10 ? "#fbbf24" : "#f87171",
-    sub: calls.contactPct >= 20 ? "Strong — 20%+ benchmark" : calls.contactPct >= 10 ? "Below average" : "Urgent — under 10%"
+    sub: calls.contactPct >= 20 ? "Above target" : calls.contactPct >= 10 ? "Below average" : "Urgent — under 10%"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10
@@ -8276,14 +8321,7 @@ function RepDetail({
       fontSize: 13,
       marginTop: 4
     }
-  }, "30%+ elite \xB7 20%+ strong \xB7 <10% urgent")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "#4a7fa8",
-      fontSize: 13,
-      marginTop: 8,
-      fontStyle: "italic"
-    }
-  }, "\u26A0 Single period \u2014 expand for details")) : /*#__PURE__*/React.createElement("div", {
+  }, "30%+ elite \xB7 20%+ strong \xB7 <10% urgent"))) : /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#4a7fa8",
       fontSize: 15,
@@ -11777,13 +11815,17 @@ function RosterView() {
   const ALL_MONTHS_12 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const YEAR_OPTS = ["2024", "2025", "2026", "2027"];
   const [search, setSearch] = useState("");
+  const [sortDir, setSortDir] = useState("az"); // az | za
   const [editName, setEditName] = useState(null); // rep name being edited
   const [editVals, setEditVals] = useState({});
   const [saveMsg, setSaveMsg] = useState("");
   const [showFormer, setShowFormer] = useState(true);
   const active = ALL.filter(r => roster[r.name]?.active !== false);
   const former = ALL.filter(r => roster[r.name]?.active === false);
-  const filtered = list => search ? list.filter(r => r.name.toLowerCase().includes(search.toLowerCase())) : list;
+  const filtered = list => {
+    const f = search ? list.filter(r => r.name.toLowerCase().includes(search.toLowerCase())) : list;
+    return [...f].sort((a, b) => sortDir === "az" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+  };
   const fmt$v = v => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : v > 0 ? `$${Math.round(v)}` : "—";
   const startEdit = rep => {
     const existing = roster[rep.name] || {};
@@ -11904,23 +11946,56 @@ function RosterView() {
       alignSelf: "center",
       fontWeight: 700
     }
-  }, saveMsg)), /*#__PURE__*/React.createElement("input", {
+  }, saveMsg)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      marginBottom: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
     value: search,
     onChange: e => setSearch(e.target.value),
     placeholder: "Search reps...",
     style: {
       width: "100%",
-      maxWidth: 320,
+      maxWidth: 280,
       background: "#06111f",
       border: "1px solid #1a3550",
       borderRadius: 5,
       padding: "6px 10px",
       color: "#e2e8f0",
       fontSize: 15,
-      outline: "none",
-      marginBottom: 16
+      outline: "none"
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1
+    }
+  }, "SORT:"), [{
+    v: "az",
+    l: "A → Z"
+  }, {
+    v: "za",
+    l: "Z → A"
+  }].map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.v,
+    onClick: () => setSortDir(o.v),
+    style: {
+      background: sortDir === o.v ? "#0f2438" : "none",
+      border: `1px solid ${sortDir === o.v ? "#22d3ee" : "#1a3550"}`,
+      borderRadius: 4,
+      padding: "5px 12px",
+      color: sortDir === o.v ? "#22d3ee" : "#4a7fa8",
+      fontSize: 13,
+      cursor: "pointer",
+      fontWeight: sortDir === o.v ? 700 : 400,
+      letterSpacing: .5
+    }
+  }, o.l))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 20
     }
