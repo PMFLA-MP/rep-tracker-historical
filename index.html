@@ -3439,7 +3439,9 @@ function LeaderboardView({
   onSel,
   statusFilt = "all",
   setStatusFilt = () => {},
-  active = ALL
+  active = ALL,
+  period = "Feb",
+  setPeriod = () => {}
 }) {
   const {
     meetingMode,
@@ -3454,7 +3456,6 @@ function LeaderboardView({
     dir: "desc"
   });
   const [filt, setFilt] = useState("all");
-  const [period, setPeriod] = useState("Feb");
   const [open25, setOpen25] = useState(false);
   const [open26, setOpen26] = useState(false);
   const [meetings, setMeetingsState] = useState({});
@@ -13626,6 +13627,7 @@ function AppInner() {
   const [sel, setSel] = useState(null);
   const [view, setView] = useState("board");
   const [statusFilt, setStatusFilt] = useState("all");
+  const [lbPeriod, setLbPeriod] = useState("Feb"); // leaderboard period — shared so header counts match
   const [meetingMode, setMeetingMode] = useState(false);
   const [focusRep, setFocusRep] = useState(null);
   // Stable alphabetical anon map: "Rep 01" … "Rep 35"
@@ -13651,25 +13653,28 @@ function AppInner() {
     reps: ACTIVE.filter(r => r.group === g.key)
   })), [ACTIVE]);
   const teamStats = useMemo(() => {
-    // Use most recent month that actually has funded data (not current calendar month which may have none)
-    const MO_ORDER = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
-    const latestMo = MO_ORDER.slice().reverse().find(mo => ACTIVE.some(r => r.mos.find(m => m.month === mo && (m.fundedAmt || 0) > 0))) || "Feb";
-    const dynStatus = r => {
-      const mo = r.mos.find(m => m.month === latestMo) || {};
-      return calcStatus(mo.fundedAmt || 0, 1, r.expMonthly, r.daysNext === "MAX");
+    // Compute status for each rep based on the same period the leaderboard is showing
+    const getStatus = r => {
+      const isMax = r.daysNext === "MAX";
+      if (lbPeriod === "all") return calcStatus(r.totalFunded, r.mos.length, r.expMonthly, isMax);
+      if (lbPeriod === "2025" || lbPeriod === "2026") {
+        const ms = r.mos.filter(m => (lbPeriod === "2025" ? MOS_2025 : MOS_2026).includes(m.month));
+        return calcStatus(ms.reduce((s, m) => s + (m.fundedAmt || 0), 0), ms.length, r.expMonthly, isMax);
+      }
+      // single month
+      const mo = r.mos.find(m => m.month === lbPeriod) || {};
+      return calcStatus(mo.fundedAmt || 0, 1, r.expMonthly, isMax);
     };
-    // Every rep counted in exactly one bucket — exceed+promote+ok+watch+act == ACTIVE.length
-    const statuses = ACTIVE.map(r => dynStatus(r));
+    const statuses = ACTIVE.map(r => getStatus(r));
     return {
       exceed: statuses.filter(s => s === "Exceeding").length,
       promote: statuses.filter(s => s === "Promotion Ready").length,
       ok: statuses.filter(s => s === "On Track").length,
       watch: statuses.filter(s => s === "Needs Attention").length,
       act: statuses.filter(s => s === "Underperforming").length,
-      latestMo,
       avgFebPts: Math.round(ACTIVE.filter(r => r.febPts !== null).reduce((s, r) => s + (r.febPts || 0), 0) / Math.max(1, ACTIVE.filter(r => r.febPts !== null).length))
     };
-  }, [ACTIVE]);
+  }, [ACTIVE, lbPeriod]);
   const formerCount = ALL.length - ACTIVE.length;
   const detailRep = sel ? ALL.find(r => r.name === sel) : null;
   const handleStatClick = statusKey => {
@@ -14000,7 +14005,9 @@ function AppInner() {
     onSel: setSel,
     statusFilt: statusFilt,
     setStatusFilt: setStatusFilt,
-    active: ACTIVE
+    active: ACTIVE,
+    period: lbPeriod,
+    setPeriod: setLbPeriod
   }))))))));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));</script></body></html>
