@@ -7666,7 +7666,8 @@ function RepDetail({
   const avgAmtPerMo = selAmt / nMos;
 
   // Benchmark for this rep's tier
-  const repBm = bm.find(b => b.tier === rep.expTier) || null;
+  // Use current tenure tier for benchmark — expTier is 0 for RITs and has no thresholds
+  const repBm = bm.find(b => b.tier === rep.tier && (b.units || b.monthly)) || bm.find(b => b.tier === rep.expTier && (b.units || b.monthly)) || null;
   const totFunded = rep.mos.reduce((s, m) => s + (m.funded || 0), 0);
   const totAmt = rep.mos.reduce((s, m) => s + (m.fundedAmt || 0), 0);
   const avgAmt = rep.mos.length ? Math.round(totAmt / rep.mos.length) : 0;
@@ -8059,11 +8060,11 @@ function RepDetail({
     label: "Avg / Month",
     value: avgUnitsPerMo.toFixed(1),
     color: "#a8c4d8"
-  }), repBm && /*#__PURE__*/React.createElement(BmBar, {
-    label: "MONTHLY AVG vs BENCHMARK",
-    value: avgUnitsPerMo,
+  }), repBm && repBm.units > 0 && /*#__PURE__*/React.createElement(BmBar, {
+    label: nMos === 1 ? "UNITS vs BENCHMARK" : "AVG/MO vs BENCHMARK",
+    value: nMos === 1 ? selUnits : avgUnitsPerMo,
     target: repBm.units,
-    fmt: v => v.toFixed(1),
+    fmt: v => Number.isInteger(v) ? v : v.toFixed(1),
     color: groupColor
   })), /*#__PURE__*/React.createElement(StatBox, {
     label: `Funded $ — ${periodLabel}`,
@@ -8223,9 +8224,9 @@ function RepDetail({
         cursor: "pointer"
       }
     }, "+ set goal"));
-  })(), repBm && /*#__PURE__*/React.createElement(BmBar, {
-    label: "AVG/MONTH vs BENCHMARK",
-    value: Math.round(avgAmtPerMo),
+  })(), repBm && repBm.monthly > 0 && /*#__PURE__*/React.createElement(BmBar, {
+    label: nMos === 1 ? "FUNDED vs BENCHMARK" : "AVG/MO vs BENCHMARK",
+    value: nMos === 1 ? selAmt : Math.round(avgAmtPerMo),
     target: repBm.monthly,
     fmt: fmt$,
     color: groupColor
