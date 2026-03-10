@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Rep Tracker — PMF</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1923;color:#e2e8f0;font-family:sans-serif}#root{min-height:100vh}</style></head>
-<body><div id="root"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Rep Tracker — PMF</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1923;color:#e2e8f0;font-family:sans-serif}#root{min-height:100vh}</style></head><body><div id="root"></div>
 <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
-<script>if(typeof React==='undefined'||typeof Recharts==='undefined'){document.getElementById('root').innerHTML='<div style="color:red;padding:40px">CDN load error — refresh</div>';throw new Error('CDN');}</script>
+<script>if(typeof React==='undefined'||typeof Recharts==='undefined'){document.getElementById('root').innerHTML='<div style="color:red;padding:40px">CDN load error</div>';throw new Error('CDN');}</script>
 <script>const {
   useState,
   useEffect,
@@ -11443,6 +11441,328 @@ function DataEntryView() {
 }
 
 // ─── RosterView ───────────────────────────────────────────────────────────────
+function RepRow({
+  rep,
+  isFmr,
+  roster,
+  editName,
+  editVals,
+  setEditVals,
+  startEdit,
+  cancelEdit,
+  commitEdit,
+  reactivate,
+  quickDeactivate
+}) {
+  const isEditing = editName === rep.name;
+  const entry = roster[rep.name] || {};
+  const totalFunded = rep.mos.reduce((s, m) => s + (m.fundedAmt || 0), 0);
+  const effectiveGroup = entry.group || rep.group;
+  const gc = POS_GROUPS.find(p => p.key === effectiveGroup);
+  const gc_c = gc?.color || "#9db4c8";
+  const fmt$v = v => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : v > 0 ? `$${Math.round(v)}` : "—";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: isEditing ? "#0f1e10" : isFmr ? "#0a0f1a" : "#0d1e32",
+      border: `1px solid ${isEditing ? "#4ade80" : isFmr ? "#1a2540" : "#1a3550"}`,
+      borderRadius: 6,
+      padding: "10px 14px",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: isFmr ? "#4a7fa8" : gc_c,
+      fontFamily: "'Bebas Neue',sans-serif",
+      fontSize: 32,
+      letterSpacing: .8
+    }
+  }, rep.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: gc_c + "22",
+      color: gc_c,
+      fontSize: 12,
+      padding: "1px 6px",
+      borderRadius: 10,
+      letterSpacing: .5
+    }
+  }, effectiveGroup), isFmr && entry.endMonth && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#f87171",
+      fontSize: 12,
+      letterSpacing: .5
+    }
+  }, "LEFT ", entry.endMonth, " ", entry.endYear)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 13
+    }
+  }, "Start: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#a8c4d8"
+    }
+  }, rep.start)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 13
+    }
+  }, "Total Funded: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#34d399"
+    }
+  }, fmt$v(totalFunded))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 13
+    }
+  }, "Months: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#a8c4d8"
+    }
+  }, rep.mos.length)), entry.note && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#fbbf24",
+      fontSize: 13
+    }
+  }, "Note: ", entry.note))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center",
+      flexShrink: 0
+    }
+  }, !isEditing && (isFmr ? /*#__PURE__*/React.createElement("button", {
+    onClick: () => reactivate(rep.name),
+    style: {
+      background: "#052e16",
+      border: "1px solid #166534",
+      borderRadius: 4,
+      padding: "4px 10px",
+      color: "#4ade80",
+      fontSize: 13,
+      cursor: "pointer",
+      letterSpacing: .5
+    }
+  }, "REACTIVATE") : /*#__PURE__*/React.createElement("button", {
+    onClick: () => quickDeactivate(rep),
+    style: {
+      background: "#1a0505",
+      border: "1px solid #7f1d1d",
+      borderRadius: 4,
+      padding: "4px 10px",
+      color: "#f87171",
+      fontSize: 13,
+      cursor: "pointer",
+      letterSpacing: .5
+    }
+  }, "MARK INACTIVE")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => isEditing ? cancelEdit() : startEdit(rep),
+    style: {
+      background: "none",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      padding: "4px 10px",
+      color: isEditing ? "#fbbf24" : "#7ec8e3",
+      fontSize: 13,
+      cursor: "pointer",
+      letterSpacing: .5
+    },
+    onMouseEnter: e => e.currentTarget.style.borderColor = "#22d3ee",
+    onMouseLeave: e => e.currentTarget.style.borderColor = "#1a3550"
+  }, isEditing ? "CANCEL" : "EDIT"))), isEditing && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 10,
+      borderTop: "1px solid #1a3550"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "auto auto auto 1fr auto",
+      gap: 12,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1,
+      marginBottom: 4
+    }
+  }, "STATUS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, [{
+    v: true,
+    l: "ACTIVE",
+    c: "#4ade80"
+  }, {
+    v: false,
+    l: "INACTIVE",
+    c: "#f87171"
+  }].map(o => /*#__PURE__*/React.createElement("button", {
+    key: String(o.v),
+    onClick: () => setEditVals(p => ({
+      ...p,
+      active: o.v
+    })),
+    style: {
+      background: editVals.active === o.v ? `${o.c}22` : "#06111f",
+      border: `1px solid ${editVals.active === o.v ? o.c : "#1a3550"}`,
+      borderRadius: 4,
+      padding: "4px 10px",
+      color: editVals.active === o.v ? o.c : "#4a7fa8",
+      fontSize: 13,
+      cursor: "pointer",
+      fontWeight: editVals.active === o.v ? 700 : 400
+    }
+  }, o.l)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1,
+      marginBottom: 4
+    }
+  }, "POSITION"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      flexWrap: "wrap"
+    }
+  }, POS_GROUPS.map(g => /*#__PURE__*/React.createElement("button", {
+    key: g.key,
+    onClick: () => setEditVals(p => ({
+      ...p,
+      group: g.key
+    })),
+    style: {
+      background: editVals.group === g.key ? `${g.color}22` : "#06111f",
+      border: `1px solid ${editVals.group === g.key ? g.color : "#1a3550"}`,
+      borderRadius: 4,
+      padding: "4px 8px",
+      color: editVals.group === g.key ? g.color : "#4a7fa8",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: editVals.group === g.key ? 700 : 400,
+      letterSpacing: .3
+    }
+  }, g.key)))), !editVals.active && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1,
+      marginBottom: 4
+    }
+  }, "DEPARTURE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: editVals.endMonth,
+    onChange: e => setEditVals(p => ({
+      ...p,
+      endMonth: e.target.value
+    })),
+    style: {
+      background: "#06111f",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      padding: "4px 6px",
+      color: "#e2e8f0",
+      fontSize: 14,
+      outline: "none"
+    }
+  }, ALL_MONTHS_12.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m,
+    value: m
+  }, m))), /*#__PURE__*/React.createElement("select", {
+    value: editVals.endYear,
+    onChange: e => setEditVals(p => ({
+      ...p,
+      endYear: e.target.value
+    })),
+    style: {
+      background: "#06111f",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      padding: "4px 6px",
+      color: "#e2e8f0",
+      fontSize: 14,
+      outline: "none"
+    }
+  }, YEAR_OPTS.map(y => /*#__PURE__*/React.createElement("option", {
+    key: y,
+    value: y
+  }, y))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1,
+      marginBottom: 4
+    }
+  }, "NOTE (optional)"), /*#__PURE__*/React.createElement("input", {
+    value: editVals.note || "",
+    onChange: e => setEditVals(p => ({
+      ...p,
+      note: e.target.value
+    })),
+    placeholder: "e.g. Resigned, Performance termination...",
+    style: {
+      width: "100%",
+      background: "#06111f",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      padding: "4px 8px",
+      color: "#e2e8f0",
+      fontSize: 14,
+      outline: "none"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: commitEdit,
+    style: {
+      background: "#052e16",
+      border: "1px solid #166534",
+      borderRadius: 4,
+      padding: "5px 14px",
+      color: "#4ade80",
+      fontSize: 14,
+      cursor: "pointer",
+      fontWeight: 700,
+      letterSpacing: .5
+    }
+  }, "SAVE")))));
+}
 function RosterView() {
   const {
     useState,
@@ -11516,318 +11836,6 @@ function RosterView() {
     await saveRoster(next);
     setSaveMsg(`✓ ${name} reactivated`);
     setTimeout(() => setSaveMsg(""), 3000);
-  };
-  const RepRow = ({
-    rep,
-    isFmr
-  }) => {
-    const isEditing = editName === rep.name;
-    const entry = roster[rep.name] || {};
-    const totalFunded = rep.mos.reduce((s, m) => s + (m.fundedAmt || 0), 0);
-    const effectiveGroup = entry.group || rep.group;
-    const gc = POS_GROUPS.find(p => p.key === effectiveGroup);
-    const gc_c = gc?.color || "#9db4c8";
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: isEditing ? "#0f1e10" : isFmr ? "#0a0f1a" : "#0d1e32",
-        border: `1px solid ${isEditing ? "#4ade80" : isFmr ? "#1a2540" : "#1a3550"}`,
-        borderRadius: 6,
-        padding: "10px 14px",
-        marginBottom: 6
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        gap: 12
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 3
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: isFmr ? "#4a7fa8" : gc_c,
-        fontFamily: "'Bebas Neue',sans-serif",
-        fontSize: 32,
-        letterSpacing: .8
-      }
-    }, rep.name), /*#__PURE__*/React.createElement("span", {
-      style: {
-        background: gc_c + "22",
-        color: gc_c,
-        fontSize: 12,
-        padding: "1px 6px",
-        borderRadius: 10,
-        letterSpacing: .5
-      }
-    }, effectiveGroup), isFmr && entry.endMonth && /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#f87171",
-        fontSize: 12,
-        letterSpacing: .5
-      }
-    }, "LEFT ", entry.endMonth, " ", entry.endYear)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 16,
-        flexWrap: "wrap"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 13
-      }
-    }, "Start: ", /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#a8c4d8"
-      }
-    }, rep.start)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 13
-      }
-    }, "Total Funded: ", /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#34d399"
-      }
-    }, fmt$v(totalFunded))), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 13
-      }
-    }, "Months: ", /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#a8c4d8"
-      }
-    }, rep.mos.length)), entry.note && /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#fbbf24",
-        fontSize: 13
-      }
-    }, "Note: ", entry.note))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        alignItems: "center",
-        flexShrink: 0
-      }
-    }, !isEditing && (isFmr ? /*#__PURE__*/React.createElement("button", {
-      onClick: () => reactivate(rep.name),
-      style: {
-        background: "#052e16",
-        border: "1px solid #166534",
-        borderRadius: 4,
-        padding: "4px 10px",
-        color: "#4ade80",
-        fontSize: 13,
-        cursor: "pointer",
-        letterSpacing: .5
-      }
-    }, "REACTIVATE") : /*#__PURE__*/React.createElement("button", {
-      onClick: () => quickDeactivate(rep),
-      style: {
-        background: "#1a0505",
-        border: "1px solid #7f1d1d",
-        borderRadius: 4,
-        padding: "4px 10px",
-        color: "#f87171",
-        fontSize: 13,
-        cursor: "pointer",
-        letterSpacing: .5
-      }
-    }, "MARK INACTIVE")), /*#__PURE__*/React.createElement("button", {
-      onClick: () => isEditing ? cancelEdit() : startEdit(rep),
-      style: {
-        background: "none",
-        border: "1px solid #1a3550",
-        borderRadius: 4,
-        padding: "4px 10px",
-        color: isEditing ? "#fbbf24" : "#7ec8e3",
-        fontSize: 13,
-        cursor: "pointer",
-        letterSpacing: .5
-      },
-      onMouseEnter: e => e.currentTarget.style.borderColor = "#22d3ee",
-      onMouseLeave: e => e.currentTarget.style.borderColor = "#1a3550"
-    }, isEditing ? "CANCEL" : "EDIT"))), isEditing && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 12,
-        paddingTop: 10,
-        borderTop: "1px solid #1a3550"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "auto auto auto 1fr auto",
-        gap: 12,
-        alignItems: "center",
-        flexWrap: "wrap"
-      }
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 12,
-        letterSpacing: 1,
-        marginBottom: 4
-      }
-    }, "STATUS"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 4
-      }
-    }, [{
-      v: true,
-      l: "ACTIVE",
-      c: "#4ade80"
-    }, {
-      v: false,
-      l: "INACTIVE",
-      c: "#f87171"
-    }].map(o => /*#__PURE__*/React.createElement("button", {
-      key: String(o.v),
-      onClick: () => setEditVals(p => ({
-        ...p,
-        active: o.v
-      })),
-      style: {
-        background: editVals.active === o.v ? `${o.c}22` : "#06111f",
-        border: `1px solid ${editVals.active === o.v ? o.c : "#1a3550"}`,
-        borderRadius: 4,
-        padding: "4px 10px",
-        color: editVals.active === o.v ? o.c : "#4a7fa8",
-        fontSize: 13,
-        cursor: "pointer",
-        fontWeight: editVals.active === o.v ? 700 : 400
-      }
-    }, o.l)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 12,
-        letterSpacing: 1,
-        marginBottom: 4
-      }
-    }, "POSITION"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 4,
-        flexWrap: "wrap"
-      }
-    }, POS_GROUPS.map(g => /*#__PURE__*/React.createElement("button", {
-      key: g.key,
-      onClick: () => setEditVals(p => ({
-        ...p,
-        group: g.key
-      })),
-      style: {
-        background: editVals.group === g.key ? `${g.color}22` : "#06111f",
-        border: `1px solid ${editVals.group === g.key ? g.color : "#1a3550"}`,
-        borderRadius: 4,
-        padding: "4px 8px",
-        color: editVals.group === g.key ? g.color : "#4a7fa8",
-        fontSize: 12,
-        cursor: "pointer",
-        fontWeight: editVals.group === g.key ? 700 : 400,
-        letterSpacing: .3
-      }
-    }, g.key)))), !editVals.active && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 12,
-        letterSpacing: 1,
-        marginBottom: 4
-      }
-    }, "DEPARTURE"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 4
-      }
-    }, /*#__PURE__*/React.createElement("select", {
-      value: editVals.endMonth,
-      onChange: e => setEditVals(p => ({
-        ...p,
-        endMonth: e.target.value
-      })),
-      style: {
-        background: "#06111f",
-        border: "1px solid #1a3550",
-        borderRadius: 4,
-        padding: "4px 6px",
-        color: "#e2e8f0",
-        fontSize: 14,
-        outline: "none"
-      }
-    }, ALL_MONTHS_12.map(m => /*#__PURE__*/React.createElement("option", {
-      key: m,
-      value: m
-    }, m))), /*#__PURE__*/React.createElement("select", {
-      value: editVals.endYear,
-      onChange: e => setEditVals(p => ({
-        ...p,
-        endYear: e.target.value
-      })),
-      style: {
-        background: "#06111f",
-        border: "1px solid #1a3550",
-        borderRadius: 4,
-        padding: "4px 6px",
-        color: "#e2e8f0",
-        fontSize: 14,
-        outline: "none"
-      }
-    }, YEAR_OPTS.map(y => /*#__PURE__*/React.createElement("option", {
-      key: y,
-      value: y
-    }, y))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "#4a7fa8",
-        fontSize: 12,
-        letterSpacing: 1,
-        marginBottom: 4
-      }
-    }, "NOTE (optional)"), /*#__PURE__*/React.createElement("input", {
-      value: editVals.note || "",
-      onChange: e => setEditVals(p => ({
-        ...p,
-        note: e.target.value
-      })),
-      placeholder: "e.g. Resigned, Performance termination...",
-      style: {
-        width: "100%",
-        background: "#06111f",
-        border: "1px solid #1a3550",
-        borderRadius: 4,
-        padding: "4px 8px",
-        color: "#e2e8f0",
-        fontSize: 14,
-        outline: "none"
-      }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        paddingTop: 14
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: commitEdit,
-      style: {
-        background: "#052e16",
-        border: "1px solid #166534",
-        borderRadius: 4,
-        padding: "5px 14px",
-        color: "#4ade80",
-        fontSize: 14,
-        cursor: "pointer",
-        fontWeight: 700,
-        letterSpacing: .5
-      }
-    }, "SAVE")))));
   };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -11934,7 +11942,16 @@ function RosterView() {
   })), filtered(active).map(r => /*#__PURE__*/React.createElement(RepRow, {
     key: r.name,
     rep: r,
-    isFmr: false
+    isFmr: false,
+    roster: roster,
+    editName: editName,
+    editVals: editVals,
+    setEditVals: setEditVals,
+    startEdit: startEdit,
+    cancelEdit: cancelEdit,
+    commitEdit: commitEdit,
+    reactivate: reactivate,
+    quickDeactivate: quickDeactivate
   }))), (former.length > 0 || search) && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -11972,7 +11989,16 @@ function RosterView() {
   }, "No former reps match search") : filtered(former).map(r => /*#__PURE__*/React.createElement(RepRow, {
     key: r.name,
     rep: r,
-    isFmr: true
+    isFmr: true,
+    roster: roster,
+    editName: editName,
+    editVals: editVals,
+    setEditVals: setEditVals,
+    startEdit: startEdit,
+    cancelEdit: cancelEdit,
+    commitEdit: commitEdit,
+    reactivate: reactivate,
+    quickDeactivate: quickDeactivate
   })))), former.length === 0 && !search && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#2a4a6a",
