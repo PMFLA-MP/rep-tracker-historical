@@ -11632,12 +11632,139 @@ function RosterView() {
   } = React.useContext(RosterCtx);
   const ALL_MONTHS_12 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const YEAR_OPTS = ["2024", "2025", "2026", "2027"];
+  const GRP_OPTS = ["Team Leader", "OCTA", "Up & Comer", "RIT", "Dept Head"];
+  const TIER_OPTS = [0, 1, 2, 5, 6, 7];
   const [search, setSearch] = useState("");
-  const [sortDir, setSortDir] = useState("az"); // az | za
-  const [editName, setEditName] = useState(null); // rep name being edited
+  const [sortDir, setSortDir] = useState("az");
+  const [editName, setEditName] = useState(null);
   const [editVals, setEditVals] = useState({});
   const [saveMsg, setSaveMsg] = useState("");
   const [showFormer, setShowFormer] = useState(true);
+  const [addingNew, setAddingNew] = useState(false);
+  const BLANK = {
+    name: "",
+    start: "",
+    group: "RIT",
+    expPos: "RIT",
+    tier: "0",
+    expTier: "0",
+    expMonthly: "100000",
+    daysNext: "",
+    note: ""
+  };
+  const [newVals, setNewVals] = useState({
+    ...BLANK
+  });
+  const [extraReps, setExtraReps] = useState([]);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const r = await storage.get("leaderboard-extra-reps-v1");
+        if (r) setExtraReps(JSON.parse(r.value));
+      } catch (e) {}
+    })();
+  }, []);
+  const saveExtra = async next => {
+    setExtraReps(next);
+    try {
+      await storage.save("leaderboard-extra-reps-v1", JSON.stringify(next));
+    } catch (e) {}
+  };
+  const commitNew = async () => {
+    if (!newVals.name.trim()) {
+      setSaveMsg("⚠ Name required");
+      setTimeout(() => setSaveMsg(""), 3000);
+      return;
+    }
+    const dup = [...ALL, ...extraReps].find(r => r.name.toLowerCase() === newVals.name.trim().toLowerCase());
+    if (dup) {
+      setSaveMsg("⚠ Rep already exists");
+      setTimeout(() => setSaveMsg(""), 3000);
+      return;
+    }
+    const rep = {
+      name: newVals.name.trim(),
+      start: newVals.start,
+      group: newVals.group,
+      expPos: newVals.expPos,
+      tier: Number(newVals.tier) || 0,
+      expTier: Number(newVals.expTier) || 0,
+      expMonthly: Number(newVals.expMonthly) || 0,
+      daysNext: newVals.daysNext || "",
+      note: newVals.note,
+      mos: [],
+      avgMtg: 0,
+      totalFunded: 0,
+      avgMonthly: 0,
+      raw: {
+        calls: {
+          dials: 0,
+          contacts: 0,
+          contactPct: 0
+        }
+      }
+    };
+    const next = [...extraReps, rep];
+    await saveExtra(next);
+    setAddingNew(false);
+    setNewVals({
+      ...BLANK
+    });
+    setSaveMsg(`✓ ${rep.name} added (roster only — not in leaderboard data)`);
+    setTimeout(() => setSaveMsg(""), 5000);
+  };
+  const removeExtra = async name => {
+    await saveExtra(extraReps.filter(r => r.name !== name));
+    setSaveMsg(`✓ ${name} removed`);
+    setTimeout(() => setSaveMsg(""), 3000);
+  };
+  const inp = (key, label, type = "text", opts = null) => /*#__PURE__*/React.createElement("div", {
+    key: key,
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      letterSpacing: 1
+    }
+  }, label), opts ? /*#__PURE__*/React.createElement("select", {
+    value: newVals[key] || "",
+    onChange: e => setNewVals(v => ({
+      ...v,
+      [key]: e.target.value
+    })),
+    style: {
+      background: "#06111f",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      color: "#e2e8f0",
+      padding: "5px 8px",
+      fontSize: 14
+    }
+  }, opts.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o,
+    value: o
+  }, o))) : /*#__PURE__*/React.createElement("input", {
+    type: type,
+    value: newVals[key] || "",
+    onChange: e => setNewVals(v => ({
+      ...v,
+      [key]: e.target.value
+    })),
+    style: {
+      background: "#06111f",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      color: "#e2e8f0",
+      padding: "5px 8px",
+      fontSize: 14,
+      outline: "none"
+    }
+  }));
   const active = ALL.filter(r => roster[r.name]?.active !== false);
   const former = ALL.filter(r => roster[r.name]?.active === false);
   const filtered = list => {
@@ -11758,12 +11885,176 @@ function RosterView() {
     }
   }, s.l))), saveMsg && /*#__PURE__*/React.createElement("div", {
     style: {
-      color: "#4ade80",
+      color: saveMsg.startsWith("⚠") ? "#f87171" : "#4ade80",
       fontSize: 14,
       alignSelf: "center",
       fontWeight: 700
     }
-  }, saveMsg)), /*#__PURE__*/React.createElement("div", {
+  }, saveMsg), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setAddingNew(a => !a);
+      setNewVals({
+        ...BLANK
+      });
+    },
+    style: {
+      background: "#052e16",
+      border: "1px solid #166534",
+      borderRadius: 6,
+      padding: "8px 18px",
+      color: "#4ade80",
+      fontSize: 15,
+      letterSpacing: 1,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ ADD REP")), addingNew && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#0d1e32",
+      border: "1px solid #22d3ee55",
+      borderRadius: 6,
+      padding: "14px",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#22d3ee",
+      fontSize: 14,
+      fontWeight: 800,
+      letterSpacing: 1.5,
+      marginBottom: 10
+    }
+  }, "NEW REP ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#4a7fa8",
+      fontSize: 12,
+      fontWeight: 400,
+      letterSpacing: 0
+    }
+  }, "\u2014 appears in roster only, not leaderboard")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3,1fr)",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, inp("name", "FULL NAME"), inp("start", "START DATE (MM/DD/YYYY)"), inp("group", "GROUP", "text", GRP_OPTS), inp("expPos", "TARGET POSITION"), inp("tier", "CURRENT TIER", "text", TIER_OPTS.map(String)), inp("expTier", "TENURE TIER", "text", TIER_OPTS.map(String)), inp("expMonthly", "MONTHLY TARGET $", "number"), inp("daysNext", "DAYS TO NEXT TIER"), inp("note", "NOTE")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: commitNew,
+    style: {
+      background: "#052e16",
+      border: "1px solid #166534",
+      borderRadius: 4,
+      padding: "6px 18px",
+      color: "#4ade80",
+      fontSize: 14,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\u2713 Add Rep"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setAddingNew(false);
+      setNewVals({
+        ...BLANK
+      });
+    },
+    style: {
+      background: "none",
+      border: "1px solid #1a3550",
+      borderRadius: 4,
+      padding: "6px 14px",
+      color: "#4a7fa8",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "Cancel"))), extraReps.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#22d3ee",
+      fontSize: 13,
+      fontWeight: 700,
+      letterSpacing: 1.5,
+      marginBottom: 8
+    }
+  }, "ADDED VIA ROSTER (", extraReps.length, ")"), extraReps.filter(r => search ? r.name.toLowerCase().includes(search.toLowerCase()) : true).map(r => {
+    const gc = POS_GROUPS.find(p => p.key === r.group);
+    const gc2 = gc?.color || "#9db4c8";
+    return /*#__PURE__*/React.createElement("div", {
+      key: r.name,
+      style: {
+        background: "#0d1e32",
+        border: "1px solid #1a3550",
+        borderRadius: 6,
+        padding: "10px 14px",
+        marginBottom: 6,
+        display: "flex",
+        alignItems: "center",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 4,
+        height: 40,
+        background: gc2,
+        borderRadius: 2,
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: gc2,
+        fontFamily: "'Bebas Neue',sans-serif",
+        fontSize: 32,
+        letterSpacing: 1
+      }
+    }, r.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        background: `${gc2}22`,
+        color: gc2,
+        fontSize: 12,
+        fontWeight: 700,
+        padding: "2px 8px",
+        borderRadius: 10
+      }
+    }, r.group)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "#4a7fa8",
+        fontSize: 13
+      }
+    }, "Start: ", r.start, " \xB7 Tier ", r.tier, " \xB7 $", (r.expMonthly / 1000).toFixed(0), "K/mo target", r.note ? ` · ${r.note}` : "")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => removeExtra(r.name),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#1a0a0a",
+        border: "1px solid #4a1a1a",
+        borderRadius: 3,
+        cursor: "pointer",
+        color: "#c84040",
+        fontSize: 12,
+        width: 22,
+        height: 22,
+        flexShrink: 0
+      }
+    }, "\u2715"));
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
